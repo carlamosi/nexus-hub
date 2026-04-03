@@ -99,8 +99,12 @@ def detect_value_column(df):
 
 
 def detect_geo_column(df):
-    geo_candidates = ['geo', 'country', 'pais', 'location', 'name']
-    return next((col for col in df.columns if col.lower() in geo_candidates), df.columns[0])
+    geo_candidates = ['geo', 'country', 'pais', 'location', 'name', 'entity', 'region']
+    for col in df.columns:
+        c_low = col.lower()
+        if any(cand in c_low for cand in geo_candidates):
+            return col
+    return df.columns[0]
 
 
 # --- UI PRINCIPAL ---
