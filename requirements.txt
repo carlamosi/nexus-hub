@@ -1,0 +1,7 @@
+streamlit
+pandas
+plotly
+requests
+langchain-groq
+python-dotenv
+jsonstat.py

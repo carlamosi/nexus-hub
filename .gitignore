@@ -1,0 +1,21 @@
+# Entornos Virtuales
+scout_env/
+env/
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Datos Temporales/Locales
+.streamlit/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+
+# Carpetas de sistema
+.DS_Store
+Thumbs.db
