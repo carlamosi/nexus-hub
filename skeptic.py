@@ -8,6 +8,10 @@ import csv
 import os
 import json
 import sys
+from dotenv import load_dotenv
+
+# Cargar variables de entorno del archivo .env
+load_dotenv()
 
 # Forzar UTF-8 para evitar errores con emojis en Windows
 if sys.platform == 'win32':

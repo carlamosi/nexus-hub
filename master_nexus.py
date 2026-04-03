@@ -9,6 +9,10 @@ import json
 import requests
 import csv
 import sys
+from dotenv import load_dotenv
+
+# Cargar variables de entorno del archivo .env
+load_dotenv()
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_groq import ChatGroq

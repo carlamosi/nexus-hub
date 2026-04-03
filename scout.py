@@ -2,6 +2,10 @@ import os
 import json
 import requests
 import sys
+from dotenv import load_dotenv
+
+# Cargar variables de entorno del archivo .env
+load_dotenv()
 
 # BLINDAJE UNICODE TOTAL - DEBE SER LA LÍNEA 1
 if sys.platform == 'win32':
