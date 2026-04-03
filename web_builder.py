@@ -147,6 +147,15 @@ def main():
         geo_col = detect_geo_column(df)
 
         if value_col:
+            # --- FILTRADO TEMPORAL INTELIGENTE ---
+            time_candidates = ['time', 'year', 'date', 'period']
+            time_col = next((col for col in df.columns if any(cand in col.lower() for cand in time_candidates) and col != geo_col and col != value_col), None)
+            
+            if time_col:
+                years = sorted(df[time_col].dropna().unique(), reverse=True)
+                selected_year = st.selectbox("📅 Seleccionar Corte Temporal:", years)
+                df = df[df[time_col] == selected_year]
+
             df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
 
             # --- MÉTRICAS DE ALTA FIDELIDAD ---
