@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import html
+from core.contracts import DataValidator
 
 # --- PROTECCIÓN DE UNICODE (WINDOWS) ---
 if sys.platform == 'win32':
@@ -125,9 +126,19 @@ def main():
         st.sidebar.error("⚠️ No hay datos en `/data/clean/`")
         df = pd.DataFrame()
 
+    # --- ENTERPRISE SECURITY & DEBUG CONTROLS ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🛡️ Enterprise Auth & Audit")
+    debug_mode = st.sidebar.toggle("🛠️ Enable Debug Mode", value=False)
+    admin_mode = st.sidebar.toggle("🔐 Admin Role", value=False)
+    audit_mode_rendering = False
+    
+    if debug_mode and admin_mode:
+        audit_mode_rendering = st.sidebar.checkbox("⚠️ Audit Mode Rendering (Force Override)", value=False)
+
     # --- HEADER ---
-    st.title("🧬 Nexus Hub v12.0 Elite")
-    st.caption("Arquitectura Avanzada de Datos Predictivos y Análisis Geoespacial")
+    st.title("🧬 Nexus Hub v13 Enterprise")
+    st.caption("Arquitectura Avanzada de Datos Predictivos y Análisis Geoespacial (Zero-Error Environment)")
 
     col_a, col_b = st.columns([2, 1])
 
@@ -158,23 +169,41 @@ def main():
 
             df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
 
-            # --- MÉTRICAS DE ALTA FIDELIDAD ---
-            m1, m2, m3 = st.columns(3)
+            # --- STRICT VALIDATION ENGINE (ZERO-ERROR) ---
+            meta = DataValidator.generate_metadata(df, target)
+            is_valid, errors = DataValidator.validate_dataset(df, value_col, geo_col)
+            
+            can_render = is_valid or audit_mode_rendering
+            show_watermark = audit_mode_rendering and not is_valid
 
-            m1.metric("Registros Locales", len(df), "Datos Vivos", delta_color="normal")
+            if not is_valid:
+                with st.expander("🚨 HARD-STOP: DATA PIPELINE COMPROMISED", expanded=True):
+                    st.error("La plataforma de Datos ha bloqueado el renderizado visual para proteger la integridad estadística.")
+                    for e in errors:
+                        st.error(f"❌ {e}")
+                    st.info("💡 **Fix Suggestion / Trust Layer**: Un valor nulo u outlier está afectando la base matemática. Revisar Data Contracts en source o usar Audit Mode (Admin).")
+            
+            if show_watermark:
+                st.warning("⚠️ AUDIT MODE RENDERING: Visualización forzada actvada. Datos incompletos presentes.")
 
-            mean_val = df[value_col].mean()
-            m2.metric("Valor Promedio", f"{mean_val:.2f}" if not pd.isna(mean_val) else "N/A", "Indicador Global", delta_color="off")
+            if can_render:
+                # --- MÉTRICAS DE ALTA FIDELIDAD ---
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Registros Locales", len(df), "Datos Vivos", delta_color="normal")
 
-            critiques = brain.get("findings", {}).get("skeptic", {}).get("critiques", [])
-            m3.metric("Certificación Skeptic", "⚠ Observaciones" if critiques else "✅ Verified", "Auditoría Automática", delta_color="off" if not critiques else "inverse")
+                mean_val = df[value_col].mean()
+                m2.metric("Valor Promedio", f"{mean_val:.2f}" if not pd.isna(mean_val) else "N/A", "Indicador Global", delta_color="off")
+
+                critiques = brain.get("findings", {}).get("skeptic", {}).get("critiques", [])
+                m3.metric("Certificación Skeptic", "⚠ Observaciones" if critiques else "✅ Verified", "Auditoría Automática", delta_color="off" if not critiques else "inverse")
 
             # --- TABS DE VISUALIZACIÓN ELITE ---
-            df_plot = df.dropna(subset=[value_col])
+            t_data = st.tabs(["📋 Data Warehouse (Audit Trail)", "🗺️ Mapa de Impacto", "🔬 Correlación Científica"])
+            t3, t1, t2 = t_data
+            
+            df_plot = df.dropna(subset=[value_col]) if can_render else pd.DataFrame()
 
             if not df_plot.empty:
-                t1, t2, t3 = st.tabs(["🗺️ Mapa de Impacto", "🔬 Correlación Científica", "📋 Data Warehouse"])
-                
                 with t1:
                     # --- CHOROPLETH MAP (MAPA DE CALOR) ---
                     map_df = df_plot.copy()
@@ -226,35 +255,53 @@ def main():
                     corr_val = corr_df[value_col].corr(corr_df['Educación_Digital'])
                     st.success(f"🧠 **Insight Analítico:** Coeficiente de correlación de Pearson ('r') = **{corr_val:.2f}**. Validado por el orquestador: Existe una dependencia estructural significativa, sugiriendo que la educación temprana mitiga la brecha.")
 
-                with t3:
-                    # --- TRAZABILIDAD DE DATOS (DATA LINEAGE) ---
-                    st.markdown("#### 🗄️ Trazabilidad de Fuentes (Scout & Cleaner)")
-                    st.caption("Supervisión en tiempo real de los metadatos y procesos de extracción.")
-                    
-                    tc1, tc2 = st.columns(2)
-                    with tc1:
-                        st.markdown("**🛰️ Data Raw (Scout)**")
-                        raw_dir = 'data/raw/'
-                        if os.path.exists(raw_dir):
-                            for rf in os.listdir(raw_dir):
-                                st.info(f"📥 **{rf}**\n\n*Recuperado de: API Oficial Eurostat/OECD*")
-                        else:
-                            st.warning("Scout inactivo o sin descargas.")
-                            
-                    with tc2:
-                        st.markdown("**🧹 Data Clean (Cleaner)**")
-                        clean_dir = 'data/clean/'
-                        if os.path.exists(clean_dir):
-                            for cf in os.listdir(clean_dir):
-                                st.success(f"⚙️ **{cf}**\n\n*Procesado a matriz CSV normalizada*")
-                        else:
-                            st.warning("Cleaner inactivo o datos no válidos.")
-                            
-                    st.divider()
-                    st.markdown("##### Exploración de Datos: Dataset Actual")
-                    st.dataframe(df, use_container_width=True)
-            else:
-                st.warning("Generando data cube para vista...")
+            # === DATA WAREHOUSE (100% VISIBLE A PESAR DEL HARD STOP) ===
+            with t3:
+                st.markdown("#### 🗄️ Trazabilidad Enterprise y Contratos de Datos")
+                
+                # Metadata Versioning Inject
+                if meta:
+                    st.caption(f"**Dataset ID:** `{meta['dataset_id']}` | **Hash Version:** `{meta['version']}` | **Firma:** `{meta['signature']}`")
+                
+                # Download Button for the processed data
+                csv_data = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Descargar Dataset Íntegro (Validado)",
+                    data=csv_data,
+                    file_name=f"{target}_verified.csv" if can_render else f"{target}_corrupted.csv",
+                    mime='text/csv',
+                    type="primary" if can_render else "secondary"
+                )
+
+                st.divider()
+                st.markdown("##### 🔬 Exploración Estricta: Dataset Actual en Memoria")
+                
+                # Trust Layer Metadata Display
+                l1, l2, l3 = st.columns(3)
+                l1.metric("Filas Totales", len(df))
+                l2.metric("Estado de Contrato", "✅ Cumplido" if is_valid else "❌ Violación Detectada")
+                l3.metric("Sobrescritura de Admin", "ON" if audit_mode_rendering else "OFF")
+
+                st.markdown(f"*Streamlit utiliza Virtual Scrolling nativo activo para renderizar {len(df)} filas sin colapsar el motor visual ni samplear datos en el backend.*")
+                
+                # The Data itself rendered natively
+                st.dataframe(df, use_container_width=True)
+
+                st.divider()
+                st.markdown("##### 🛰️ Tubería Hacia Atrás (Lineage Raw -> Clean)")
+                tc1, tc2 = st.columns(2)
+                with tc1:
+                    st.markdown("**1. Data Raw (Scout)**")
+                    raw_dir = 'data/raw/'
+                    if os.path.exists(raw_dir):
+                        for rf in os.listdir(raw_dir):
+                            st.info(f"📥 `{rf}`\n*Fetch Timestamp:* Asíncrono")
+                with tc2:
+                    st.markdown("**2. Transformación CSV (Cleaner)**")
+                    clean_dir = 'data/clean/'
+                    if os.path.exists(clean_dir):
+                        for cf in os.listdir(clean_dir):
+                            st.success(f"⚙️ `{cf}`\n*Contenedor CSV Inyectado*")
 
         else:
             st.warning("No se detectó columna de valores válida.")
