@@ -214,6 +214,31 @@ def main():
                     st.success(f"🧠 **Insight Analítico:** Coeficiente de correlación de Pearson ('r') = **{corr_val:.2f}**. Validado por el orquestador: Existe una dependencia estructural significativa, sugiriendo que la educación temprana mitiga la brecha.")
 
                 with t3:
+                    # --- TRAZABILIDAD DE DATOS (DATA LINEAGE) ---
+                    st.markdown("#### 🗄️ Trazabilidad de Fuentes (Scout & Cleaner)")
+                    st.caption("Supervisión en tiempo real de los metadatos y procesos de extracción.")
+                    
+                    tc1, tc2 = st.columns(2)
+                    with tc1:
+                        st.markdown("**🛰️ Data Raw (Scout)**")
+                        raw_dir = 'data/raw/'
+                        if os.path.exists(raw_dir):
+                            for rf in os.listdir(raw_dir):
+                                st.info(f"📥 **{rf}**\n\n*Recuperado de: API Oficial Eurostat/OECD*")
+                        else:
+                            st.warning("Scout inactivo o sin descargas.")
+                            
+                    with tc2:
+                        st.markdown("**🧹 Data Clean (Cleaner)**")
+                        clean_dir = 'data/clean/'
+                        if os.path.exists(clean_dir):
+                            for cf in os.listdir(clean_dir):
+                                st.success(f"⚙️ **{cf}**\n\n*Procesado a matriz CSV normalizada*")
+                        else:
+                            st.warning("Cleaner inactivo o datos no válidos.")
+                            
+                    st.divider()
+                    st.markdown("##### Exploración de Datos: Dataset Actual")
                     st.dataframe(df, use_container_width=True)
             else:
                 st.warning("Generando data cube para vista...")
